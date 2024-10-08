@@ -5,6 +5,8 @@
 
 #include "httplib.h"
 
+#include "../serialization/cppdantic.h"
+
 namespace zserver {
 template<size_t N>
 struct StringLiteral {
@@ -21,8 +23,11 @@ class APIRouter {
     template<StringLiteral handler_prefix>
     struct GET {
         static constexpr std::string kHandlerPrefix = handler_prefix.data;
+
         GET(const auto &handler) {
-            APIRouter::handlers_[kHandlerPrefix] = +handler;
+            APIRouter::handlers_[kHandlerPrefix] = [&handler] (const httplib::Request &req, httplib::Response &resp) {
+                resp.body = boost::json::serialize(handler(req) | As<boost::json::object>());
+            };
         }
     };
 
@@ -38,11 +43,11 @@ class APIRouter {
 
  protected:
     // relatively to the kPrefix
-    static std::map<std::string, void(*)(const httplib::Request&, httplib::Response&)> handlers_;
+    static std::map<std::string, std::function<void(const httplib::Request&, httplib::Response&)>> handlers_;
 };
 
 template<StringLiteral prefix, auto lamb>
-std::map<std::string, void(*)(const httplib::Request&, httplib::Response&)> zserver::APIRouter<prefix, lamb>::handlers_ = {};
+std::map<std::string, std::function<void(const httplib::Request&, httplib::Response&)>> zserver::APIRouter<prefix, lamb>::handlers_ = {};
 
 
 class ZServer : public APIRouter<""> {
@@ -50,7 +55,7 @@ class ZServer : public APIRouter<""> {
     void listen(std::string ip, size_t port) const {
         httplib::Server svr;
         for (const auto &[prefix, handler] : handlers_) {
-            svr.Get(prefix, *handler);
+            svr.Get(prefix, handler);
         }
         svr.set_post_routing_handler([](const auto& req, auto& res) {
             std::cerr << "Got request" << std::endl;

@@ -1,11 +1,19 @@
-#include "zserver.h"
+#include "include/server/zserver.h"
+
+struct Response {
+    int num;
+    std::string str;
+};
 
 namespace routers {
 using zrouter = zserver::APIRouter<"/ping">;
 
 zrouter::GET<"/test">
-Ping = [](const httplib::Request &req, httplib::Response &resp) {
-    resp.set_content(R"({ "holocost" : "yes" })", "application/json");
+Ping = [](const httplib::Request &req) {
+    return Response {
+        .num = 52,
+        .str = "pizda"
+    };
 };
 } // namespace routers
 
