@@ -14,14 +14,16 @@ struct StringLiteral {
     char data[N];
 };
 
-template<StringLiteral prefix>
+template<StringLiteral prefix, auto = [] {}>
 class APIRouter {
  public:
     static constexpr std::string kPrefix = prefix.data;
     template<StringLiteral handler_prefix>
     struct GET {
         static constexpr std::string kHandlerPrefix = handler_prefix.data;
-        GET(const auto &handler);
+        GET(const auto &handler) {
+            APIRouter::handlers_[kHandlerPrefix] = +handler;
+        }
     };
 
     template<typename RouterT>
@@ -31,7 +33,7 @@ class APIRouter {
         }
     }
 
-    template<StringLiteral other_prefix>
+    template<StringLiteral, auto>
     friend class APIRouter;
 
  protected:
@@ -39,23 +41,19 @@ class APIRouter {
     static std::map<std::string, void(*)(const httplib::Request&, httplib::Response&)> handlers_;
 };
 
-template<StringLiteral prefix>
-std::map<std::string, void(*)(const httplib::Request&, httplib::Response&)> zserver::APIRouter<prefix>::handlers_ = {};
+template<StringLiteral prefix, auto lamb>
+std::map<std::string, void(*)(const httplib::Request&, httplib::Response&)> zserver::APIRouter<prefix, lamb>::handlers_ = {};
 
-template<StringLiteral prefix>
-template<StringLiteral handler_prefix>
-APIRouter<prefix>::GET<handler_prefix>::GET(const auto &handler) {
-    APIRouter<prefix>::handlers_[kHandlerPrefix] = +handler;
-}
 
 class ZServer : public APIRouter<""> {
  public:
-    [[noreturn]] void listen(std::string ip, size_t port) const {
+    void listen(std::string ip, size_t port) const {
         httplib::Server svr;
         for (const auto &[prefix, handler] : handlers_) {
             svr.Get(prefix, *handler);
         }
         svr.set_post_routing_handler([](const auto& req, auto& res) {
+            std::cerr << "Got request" << std::endl;
             res.set_header("Access-Control-Allow-Origin", "*");
             res.set_header("Access-Control-Allow-Headers", "*");
         });

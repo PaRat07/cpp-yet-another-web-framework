@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.22)
 project(yawf)
 
-set(CMAKE_CXX_STANDARD 26)
+set(CMAKE_CXX_STANDARD 23)
 
 find_package(httplib CONFIG REQUIRED)
 
