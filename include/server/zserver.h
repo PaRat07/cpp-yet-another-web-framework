@@ -5,7 +5,8 @@
 
 #include "httplib.h"
 
-#include "../serialization/cppdantic.h"
+#include "../cppdantic/json2obj.h"
+#include "../cppdantic/obj2json.h"
 
 namespace zserver {
 template<size_t N>
@@ -25,8 +26,12 @@ class APIRouter {
         static constexpr std::string kHandlerPrefix = handler_prefix.data;
 
         GET(const auto &handler) {
+            using InvokeT = decltype([] <typename InvT, typename RetT> (RetT(*)(InvT)) {
+                return InvT();
+            } (+handler));
             APIRouter::handlers_[kHandlerPrefix] = [&handler] (const httplib::Request &req, httplib::Response &resp) {
-                resp.body = boost::json::serialize(handler(req) | As<boost::json::object>());
+                const auto val = boost::json::parse(req.body);
+                resp.body = boost::json::serialize(handler(val | As<InvokeT>()) | As<boost::json::object>());
             };
         }
     };
@@ -55,8 +60,15 @@ class ZServer : public APIRouter<""> {
     void listen(std::string ip, size_t port) const {
         httplib::Server svr;
         for (const auto &[prefix, handler] : handlers_) {
-            svr.Get(prefix, handler);
+            svr.Post(prefix, handler);
         }
+        svr.set_exception_handler([](const auto& req, auto& res, std::exception_ptr ep) {
+            try {
+                std::rethrow_exception(ep);
+            } catch (std::exception &e) {
+                std::cout << e.what() << std::endl;
+            }
+        });
         svr.set_post_routing_handler([](const auto& req, auto& res) {
             std::cerr << "Got request" << std::endl;
             res.set_header("Access-Control-Allow-Origin", "*");

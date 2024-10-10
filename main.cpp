@@ -3,16 +3,27 @@
 struct Response {
     int num;
     std::string str;
+    std::vector<std::string> ss;
+};
+
+struct Request {
+    int num;
+    std::string stroka;
 };
 
 namespace routers {
 using zrouter = zserver::APIRouter<"/ping">;
 
 zrouter::GET<"/test">
-Ping = [](const httplib::Request &req) {
+Ping = [] (Request req) {
     return Response {
-        .num = 52,
-        .str = "pizda"
+        .num = req.num,
+        .str = req.stroka,
+        .ss = {
+            "huy",
+            "pizda",
+            "scovoroda"
+        }
     };
 };
 } // namespace routers
