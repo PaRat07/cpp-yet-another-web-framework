@@ -30,8 +30,19 @@ class APIRouter {
                 return InvT();
             } (+handler));
             APIRouter::handlers_[kHandlerPrefix] = [&handler] (const httplib::Request &req, httplib::Response &resp) {
-                const auto val = boost::json::parse(req.body);
-                resp.body = boost::json::serialize(handler(val | As<InvokeT>()) | As<boost::json::object>());
+                boost::system::error_code ec;
+                const auto request_json = boost::json::parse(req.body, ec);
+                if (ec) {
+                    resp.status = httplib::StatusCode::BadRequest_400;
+                    resp.body = R"("{ "Error" : "Json is incorrect" }")";
+                }
+                const auto request_obj = request_json | As<InvokeT>();
+                if (request_obj.has_value()) [[likely]] {
+                    resp.body = boost::json::serialize(handler(*request_obj) | As<boost::json::object>());
+                } else {
+                    resp.status = httplib::StatusCode::BadRequest_400;
+                    resp.body = R"("{ "Error" : "Json is incorrect" }")";
+                }
             };
         }
     };

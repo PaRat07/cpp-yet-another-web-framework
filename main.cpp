@@ -1,21 +1,22 @@
 #include "include/server/zserver.h"
 
+
+namespace routers {
+using zrouter = zserver::APIRouter<"/ping">;
+
 struct Response {
     int num;
     std::string str;
     std::vector<std::string> ss;
 };
 
-struct Request {
+struct RequestBody {
     int num;
     std::string stroka;
 };
 
-namespace routers {
-using zrouter = zserver::APIRouter<"/ping">;
-
 zrouter::GET<"/test">
-Ping = [] (Request req) {
+Ping = [] (RequestBody req) {
     return Response {
         .num = req.num,
         .str = req.stroka,

@@ -7,6 +7,8 @@
 
 #include "httplib.h"
 
+#include "valdatable_types.h"
+
 template<typename T>
 concept Class = std::is_class_v<T>;
 
