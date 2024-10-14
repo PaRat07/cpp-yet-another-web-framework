@@ -13,6 +13,9 @@ struct Response {
 struct RequestBody {
     int num;
     std::string stroka;
+    struct {
+        int x;
+    } val;
 };
 
 zrouter::GET<"/test">

@@ -47,10 +47,10 @@ class APIRouter {
                 }
                 const auto request_obj = request_json | As<InvokeT>();
                 if (request_obj.has_value()) [[likely]] {
+                    resp.body = boost::json::serialize(handler(*request_obj) | As<boost::json::object>());
+                } else {
                     resp.status = 400;
                     resp.body = std::format(std::runtime_format(request_obj.error().error), request_obj.error().field_name);
-                } else {
-                    resp.body = boost::json::serialize(handler(*request_obj) | As<boost::json::object>());
                 }
             };
         }

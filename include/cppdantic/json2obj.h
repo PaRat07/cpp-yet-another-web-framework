@@ -62,6 +62,7 @@ inline auto ValidateField(const boost::json::object &from, ToT &res) noexcept ->
         boost::pfr::get<Ind>(res) = std::move(*res_opt);
         return std::nullopt;
     } else [[unlikely]] {
+        res_opt.error().field_name = std::string(boost::pfr::get_name<Ind, std::decay_t<ToT>>()) + "::"s + res_opt.error().field_name;
         return res_opt.error();
     }
 }
