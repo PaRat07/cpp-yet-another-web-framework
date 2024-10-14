@@ -18,7 +18,7 @@ std::expected<ToT, ValidationError> operator|(const boost::json::value &from, As
         return from.get_object();
     } else [[unlikely]] {
         return std::unexpected(ValidationError {
-            .error = "Field \"{}\" has incorrect type, expected array, got"s + std::string(to_string(from.kind())),
+            .error = "Field \"{}\" has incorrect type, expected array, got "s + std::string(to_string(from.kind())),
             .field_name = ""s
         });
     }
@@ -30,7 +30,7 @@ std::expected<ToT, ValidationError> operator|(const boost::json::value &from, As
         return from.get_int64();
     } else [[unlikely]] {
         return std::unexpected(ValidationError {
-            .error = "Field \"{}\" has incorrect type, expected integer, got"s + std::string(to_string(from.kind())),
+            .error = "Field \"{}\" has incorrect type, expected integer, got "s + std::string(to_string(from.kind())),
             .field_name = ""s
         });
     }
@@ -42,7 +42,7 @@ std::expected<ToT, ValidationError> operator|(const boost::json::value &from, As
         return from.get_double();
     } else [[unlikely]] {
         return std::unexpected(ValidationError {
-            .error = "Field \"{}\" has incorrect type, expected array, got"s + std::string(to_string(from.kind())),
+            .error = "Field \"{}\" has incorrect type, expected array, got "s + std::string(to_string(from.kind())),
             .field_name = ""s
         });
     }
@@ -62,7 +62,11 @@ inline auto ValidateField(const boost::json::object &from, ToT &res) noexcept ->
         boost::pfr::get<Ind>(res) = std::move(*res_opt);
         return std::nullopt;
     } else [[unlikely]] {
-        res_opt.error().field_name = std::string(boost::pfr::get_name<Ind, std::decay_t<ToT>>()) + "::"s + res_opt.error().field_name;
+        std::string err(boost::pfr::get_name<Ind, std::decay_t<ToT>>());
+        if (!res_opt.error().field_name.empty()) {
+            err += "::"s + res_opt.error().field_name;
+        }
+        res_opt.error().field_name = std::move(err);
         return res_opt.error();
     }
 }
@@ -84,7 +88,7 @@ template<Class ToT>
 inline std::expected<ToT, ValidationError> operator|(const boost::json::value &from, As<ToT>) noexcept {
     if (!from.is_object()) [[unlikely]] {
         return std::unexpected(ValidationError {
-            .error = "Field \"{}\" has incorrect type, expected object, got"s + std::string(to_string(from.kind())),
+            .error = "Field \"{}\" has incorrect type, expected object, got "s + std::string(to_string(from.kind())),
             .field_name = ""s
         });
     }
