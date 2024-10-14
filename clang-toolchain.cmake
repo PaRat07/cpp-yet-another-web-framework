@@ -1,0 +1,7 @@
+set(CMAKE_C_COMPILER /usr/bin/clang CACHE FILEPATH "C compiler" FORCE)
+set(CMAKE_CXX_COMPILER /usr/bin/clang++ CACHE FILEPATH "C++ compiler" FORCE)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++2c -stdlib=libc++ -fuse-ld=lld")
+set(CLANG_DEFAULT_CXX_STDLIB libc++)
+set(CLANG_DEFAULT_RTLIB compiler-rt)
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -stdlib=libc++ -lc++abi")
+set(CMAKE_LINKER_TYPE LLD)

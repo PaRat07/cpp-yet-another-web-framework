@@ -21,9 +21,6 @@ Ping = [] (RequestBody req) {
         .num = req.num,
         .str = req.stroka,
         .ss = {
-            "huy",
-            "pizda",
-            "scovoroda"
         }
     };
 };

@@ -10,9 +10,7 @@ auto operator|(std::floating_point auto from, As<boost::json::object>) {
     return from;
 }
 
-boost::json::string_view operator|(std::string_view from, As<boost::json::object>) {
-    return from;
-}
+boost::json::string_view operator|(std::string_view from, As<boost::json::object>);
 
 auto operator|(std::ranges::range auto from, As<boost::json::object>) requires IsNot<decltype(from), std::string> {
     auto ans = boost::json::array(from.size());

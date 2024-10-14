@@ -2,8 +2,8 @@
 #include <vector>
 #include <string_view>
 #include <map>
+#include <format>
 
-#include "httplib.h"
 
 #include "../cppdantic/json2obj.h"
 #include "../cppdantic/obj2json.h"
@@ -15,6 +15,15 @@ struct StringLiteral {
         std::copy_n(str, N, data);
     }
     char data[N];
+};
+
+struct HttpRequest {
+    std::string body;
+};
+
+struct HttpResponse {
+    int status = 200;
+    std::string body;
 };
 
 template<StringLiteral prefix, auto = [] {}>
@@ -29,19 +38,19 @@ class APIRouter {
             using InvokeT = decltype([] <typename InvT, typename RetT> (RetT(*)(InvT)) {
                 return InvT();
             } (+handler));
-            APIRouter::handlers_[kHandlerPrefix] = [&handler] (const httplib::Request &req, httplib::Response &resp) {
+            APIRouter::handlers_[kHandlerPrefix] = [&handler] (const HttpRequest &req, HttpResponse &resp) {
                 boost::system::error_code ec;
                 const auto request_json = boost::json::parse(req.body, ec);
                 if (ec) {
-                    resp.status = httplib::StatusCode::BadRequest_400;
+                    resp.status = 400;
                     resp.body = R"("{ "Error" : "Json is incorrect" }")";
                 }
                 const auto request_obj = request_json | As<InvokeT>();
                 if (request_obj.has_value()) [[likely]] {
-                    resp.body = boost::json::serialize(handler(*request_obj) | As<boost::json::object>());
+                    resp.status = 400;
+                    resp.body = std::format(std::runtime_format(request_obj.error().error), request_obj.error().field_name);
                 } else {
-                    resp.status = httplib::StatusCode::BadRequest_400;
-                    resp.body = R"("{ "Error" : "Json is incorrect" }")";
+                    resp.body = boost::json::serialize(handler(*request_obj) | As<boost::json::object>());
                 }
             };
         }
@@ -59,33 +68,15 @@ class APIRouter {
 
  protected:
     // relatively to the kPrefix
-    static std::map<std::string, std::function<void(const httplib::Request&, httplib::Response&)>> handlers_;
+    static std::map<std::string, std::function<void(const HttpRequest&, HttpResponse&)>> handlers_;
 };
 
 template<StringLiteral prefix, auto lamb>
-std::map<std::string, std::function<void(const httplib::Request&, httplib::Response&)>> zserver::APIRouter<prefix, lamb>::handlers_ = {};
+std::map<std::string, std::function<void(const HttpRequest&, HttpResponse&)>> zserver::APIRouter<prefix, lamb>::handlers_ = {};
 
 
 class ZServer : public APIRouter<""> {
  public:
-    void listen(std::string ip, size_t port) const {
-        httplib::Server svr;
-        for (const auto &[prefix, handler] : handlers_) {
-            svr.Post(prefix, handler);
-        }
-        svr.set_exception_handler([](const auto& req, auto& res, std::exception_ptr ep) {
-            try {
-                std::rethrow_exception(ep);
-            } catch (std::exception &e) {
-                std::cout << e.what() << std::endl;
-            }
-        });
-        svr.set_post_routing_handler([](const auto& req, auto& res) {
-            std::cerr << "Got request" << std::endl;
-            res.set_header("Access-Control-Allow-Origin", "*");
-            res.set_header("Access-Control-Allow-Headers", "*");
-        });
-        svr.listen(ip, port);
-    }
+    void listen(std::string ip, size_t port) const;
 };
 } // namespace zserver
