@@ -26,6 +26,7 @@ struct HttpResponse {
     std::string body;
 };
 
+static simdjson::ondemand::parser parser;
 template<StringLiteral prefix, auto = [] {}>
 class APIRouter {
  public:
@@ -38,16 +39,18 @@ class APIRouter {
             using InvokeT = decltype([] <typename InvT, typename RetT> (RetT(*)(InvT)) {
                 return InvT();
             } (+handler));
-            APIRouter::handlers_[kHandlerPrefix] = [&handler] (const HttpRequest &req, HttpResponse &resp) {
-                boost::system::error_code ec;
-                const auto request_json = boost::json::parse(req.body, ec);
+            APIRouter::handlers_[kHandlerPrefix] = [&handler] (HttpRequest &req, HttpResponse &resp) {
+                req.body.reserve(req.body.size() + simdjson::SIMDJSON_PADDING);
+                simdjson::ondemand::document doc;
+                auto ec = parser.iterate(req.body).get(doc);
                 if (ec) {
                     resp.status = 400;
                     resp.body = R"("{ "Error" : "Json is incorrect" }")";
+                    return;
                 }
-                const auto request_obj = request_json | As<InvokeT>();
+                const auto request_obj = doc | As<InvokeT>();
                 if (request_obj.has_value()) [[likely]] {
-                    resp.body = boost::json::serialize(handler(*request_obj) | As<boost::json::object>());
+                    resp.body = simdjson::to_json_string(handler(*request_obj) | As<simdjson::ondemand::document>());
                 } else {
                     resp.status = 400;
                     resp.body = std::format(std::runtime_format(request_obj.error().error), request_obj.error().field_name);
