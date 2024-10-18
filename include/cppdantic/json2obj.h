@@ -12,7 +12,7 @@ struct ValidationError {
 
 inline std::expected<std::string_view, ValidationError> operator|(simdjson::ondemand::value &from, As<std::string_view>) noexcept {
     std::string_view res;
-    if (const auto ec = from.get_string().get(res); ec == simdjson::SUCCESS) [[likely]] {
+    if (from.get_string().get(res) == simdjson::SUCCESS) [[likely]] {
         return res;
     } else [[unlikely]] {
         return std::unexpected(ValidationError {
@@ -24,7 +24,7 @@ inline std::expected<std::string_view, ValidationError> operator|(simdjson::onde
 
 inline std::expected<std::string, ValidationError> operator|(simdjson::ondemand::value &from, As<std::string>) noexcept {
     std::string_view res;
-    if (const auto ec = from.get_string().get(res); ec == simdjson::SUCCESS) [[likely]] {
+    if (from.get_string().get(res) == simdjson::SUCCESS) [[likely]] {
         return std::string(res);
     } else [[unlikely]] {
         return std::unexpected(ValidationError {
@@ -114,7 +114,7 @@ std::optional<ValidationError> Validate(simdjson::ondemand::object &from, ToT &a
 
 template<Class ToT> requires (!std::is_same_v<ToT, std::string_view>) && (!std::is_same_v<ToT, std::string>)
 inline std::expected<ToT, ValidationError> operator|(simdjson::ondemand::value &from, As<ToT>) noexcept {
-    auto from_obj = simdjson::ondemand::object();
+    simdjson::ondemand::object from_obj;
     if (from.get_object().get(from_obj) != simdjson::SUCCESS) [[unlikely]] {
         return std::unexpected(ValidationError {
             .error = "Field \"{}\" has incorrect type, expected object"s,
