@@ -11,13 +11,12 @@ set(CMAKE_LINKER_TYPE LLD)
 project(yawf)
 
 
-find_package(boost_json REQUIRED CONFIG)
+find_package(simdjson CONFIG REQUIRED)
 find_package(httplib CONFIG REQUIRED)
 find_package(boost_pfr REQUIRED CONFIG)
+find_package(boost_json REQUIRED CONFIG)
 
 add_executable(${PROJECT_NAME} main.cpp
-        src/zserver.cpp
-        src/json2obj.cpp
-        src/obj2json.cpp)
-target_link_libraries(${PROJECT_NAME} PRIVATE httplib::httplib Boost::pfr Boost::json)
+        src/zserver.cpp)
+target_link_libraries(${PROJECT_NAME} PRIVATE httplib::httplib Boost::pfr simdjson::simdjson Boost::json)
 

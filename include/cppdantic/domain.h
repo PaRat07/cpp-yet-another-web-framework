@@ -4,6 +4,7 @@
 
 #include <boost/pfr.hpp>
 #include <boost/json.hpp>
+#include "simdjson.h"
 
 #include "valdatable_types.h"
 
