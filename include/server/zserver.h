@@ -42,16 +42,21 @@ class APIRouter {
             APIRouter::handlers_[kHandlerPrefix] = [&handler] (HttpRequest &req, HttpResponse &resp) {
                 req.body.reserve(req.body.size() + simdjson::SIMDJSON_PADDING);
                 simdjson::ondemand::document doc;
-                auto ec = parser.iterate(req.body).get(doc);
-                if (ec) {
+                if (parser.iterate(req.body).get(doc) != simdjson::SUCCESS) [[unlikely]] {
                     resp.status = 400;
                     resp.body = R"("{ "Error" : "Json is incorrect" }")";
                     return;
                 }
-                const auto request_obj = doc | As<InvokeT>();
+                auto req_json = simdjson::ondemand::value();
+                if (doc.get_value().get(req_json) != simdjson::SUCCESS) {
+                    resp.status = 400;
+                    resp.body = R"("{ "Error" : "Json is incorrect" }")";
+                    return;
+                }
+                auto request_obj = req_json | As<InvokeT>();
                 if (request_obj.has_value()) [[likely]] {
-                    resp.body = simdjson::to_json_string(handler(*request_obj) | As<simdjson::ondemand::document>());
-                } else {
+                    resp.body = boost::json::serialize(handler(*request_obj) | As<boost::json::object>());
+                } else [[unlikely]] {
                     resp.status = 400;
                     resp.body = std::format(std::runtime_format(request_obj.error().error), request_obj.error().field_name);
                 }
@@ -71,11 +76,11 @@ class APIRouter {
 
  protected:
     // relatively to the kPrefix
-    static std::map<std::string, std::function<void(const HttpRequest&, HttpResponse&)>> handlers_;
+    static std::map<std::string, std::function<void(HttpRequest&, HttpResponse&)>> handlers_;
 };
 
 template<StringLiteral prefix, auto lamb>
-std::map<std::string, std::function<void(const HttpRequest&, HttpResponse&)>> zserver::APIRouter<prefix, lamb>::handlers_ = {};
+std::map<std::string, std::function<void(HttpRequest&, HttpResponse&)>> zserver::APIRouter<prefix, lamb>::handlers_ = {};
 
 
 class ZServer : public APIRouter<""> {

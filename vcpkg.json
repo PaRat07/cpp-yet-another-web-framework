@@ -1,6 +1,7 @@
 {
   "dependencies": [
     "boost-pfr",
+    "boost-json",
     "cpp-httplib",
     "simdjson"
   ]
